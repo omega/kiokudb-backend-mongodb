@@ -11,20 +11,29 @@ with qw(
     Search::GIN::Extract::Delegate
 );
 #has '+inline_data' => ( default => 1 );
+has root_only => (
+    isa => "Bool",
+    is  => "ro",
+    default => 0,
+);
 
-around 'serialize' => sub {
-    my $orig = shift;
-    my $self = shift;
-    my $entry = shift;
-    my $data = $self->$orig($entry, @_);
+before 'insert' => sub {
+    my ($self, @entries) = @_;
     
     if ($self->extract) {
-        if (!$entry->deleted and $entry->object) {
-            my @keys = $self->extract_values( $entry->object, entry => $entry );
-            $data->{'kiokuextract'} = \@keys;
+        foreach my $entry (@entries) {
+            if ( $entry->deleted || !$entry->has_object || ( !$entry->root && $self->root_only ) ) {
+                $entry->clear_backend_data;
+            } else {
+                my @keys = $self->extract_values( $entry->object, entry => $entry );
+
+                if ( @keys ) {
+                    my $d = $entry->backend_data || $entry->backend_data({});
+                    $d->{keys} = \@keys;
+                }
+            }
         }
     }
-    $data;
 };
 
 sub search {
@@ -36,7 +45,9 @@ sub search {
         confess("unknown method " . $spec{method} . " in search");
     }
     my $proto = {
-        'kiokuextract' => { '$in' => $spec{values} },
+        $self->backend_data_field . ".keys" => {
+            '$in' => $spec{values} 
+        },
     };
     return $self->_proto_search($proto);
 }
