@@ -51,19 +51,9 @@ sub search {
     };
     return $self->_proto_search($proto);
 }
-sub fetch_entry {
-    warn "fetch_entry:\n\t" . join ("\n\t", @_);
-    
-}
-
-sub insert_entry {
-    warn "insert_entry:\n\t" . join ("\n\t", @_);
-    
-}
-
-sub remove_ids {
-    warn "remove ids:\n\t" . join ("\n\t", @_);
-}
-
+# Theese are required by the GIN role
+sub fetch_entry { }
+sub insert_entry { }
+sub remove_ids { }
 
 1;
